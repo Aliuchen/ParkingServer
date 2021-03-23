@@ -1,8 +1,8 @@
 # mysql 的配置文件
 ip=127.0.0.1
 port=3306
-username=root
-password=LC199938
+username=
+password=
 dbname=parking_service
 initSize=10
 maxSize=1024
