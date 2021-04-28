@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+message PersonInfoRequest {
+
+  string telNum = 1;
+
+}
+
+message PersonInfoResponse {
+
+  int32 code = 1;
+  string personName = 2;
+  string balance = 3;
+  string member = 4;
+  string carName = 5;
+  string carId = 6;
+  string userId = 7;
+  string userMail = 8;
+
+}

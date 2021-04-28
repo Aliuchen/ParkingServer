@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+message RegisterRequest {
+
+  string username = 1;
+  string password = 2;
+  string usermail = 3;
+}
+
+message RegisterResponse {
+
+  int32 code = 1;
+  string info = 2;
+
+}
+

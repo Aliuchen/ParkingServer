@@ -25,6 +25,7 @@ class ZKClient {
         ZKClient();
 
         void start();
+        void start(watcher_fn fn);
         // zk创建节点
         void create(const char *path, const char *data, int datalen, int state=0);
 
@@ -36,6 +37,9 @@ class ZKClient {
          // set node节点的值
          bool setVal(const char* path,const char *data, int datalen);
 
+         // 返回子节点
+         vector<string> getNodeChildren(const char *path);
+
          static void setRootPath(string path);
 
          static string getRootPath();
@@ -43,11 +47,11 @@ class ZKClient {
          // 这个watcher是全局的回调
           static void global_watcher(zhandle_t *zh, int type,
                    int state, const char *path, void *watcherCtx);    
+          // 同步session创建成功
+          static sem_t _sem;
     private:
          // zkclient和zkserver通信用的句柄
      zhandle_t *_zhandle;
-     // 同步session创建成功
-     static sem_t _sem;
      // 存放根结点
      static string _rootNodePath;
 

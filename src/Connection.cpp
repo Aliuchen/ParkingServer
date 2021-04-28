@@ -52,6 +52,7 @@ bool Connection::connect(string ip, unsigned short port, string user, string pas
 
 bool Connection::updata(string sql) {
 
+    mysql_query(_conn,"set names utf8");
     if(mysql_query(_conn, sql.c_str())) {
 
        LOG("更新失败"+sql);
@@ -63,6 +64,7 @@ bool Connection::updata(string sql) {
 
 MYSQL_RES * Connection::query(string sql) {
 
+    mysql_query(_conn,"set names utf8");
     if(mysql_query(_conn, sql.c_str())) {
 
         LOG("查询失败" + sql);
@@ -71,4 +73,3 @@ MYSQL_RES * Connection::query(string sql) {
 
     return mysql_use_result(_conn);
 }
-

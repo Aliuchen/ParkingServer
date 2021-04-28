@@ -30,6 +30,7 @@ void ZKClient::start() {
      // zookeeper_init连接zkServer创建好session是一个异步的过程
        const char *host = "127.0.0.1:2181";
        _zhandle = zookeeper_init(host,global_watcher,30000,nullptr,nullptr,0);
+       
 
        if(_zhandle == nullptr) {
 
@@ -44,6 +45,25 @@ void ZKClient::start() {
         
 }
 
+
+void ZKClient::start(watcher_fn fn) {
+
+     // zookeeper_init连接zkServer创建好session是一个异步的过程
+       const char *host = "127.0.0.1:2181";
+     _zhandle = zookeeper_init(host,fn,30000,nullptr,nullptr,0);
+   
+
+       if(_zhandle == nullptr) {
+
+          cout << "connecting zookeeper error..." << endl;
+           exit(EXIT_FAILURE);
+       }
+
+      // 阻塞等待连接成功，在返回
+       sem_wait(&_sem);
+        cout << "connecting zookeeper success..." << endl;
+    
+ }
 
 // zk创建节点
 void ZKClient::create(const char *path, const char *data, int datalen, int state) {
@@ -75,16 +95,17 @@ void ZKClient::create(const char *path, const char *data, int datalen, int state
 // get znode节点的值
  string ZKClient::getVal(const char *path,int state) {
 
-     string val ="";
      char buffer[64];
      int bufferlen = sizeof(buffer);
      int flag = zoo_get(_zhandle, path, state, buffer, &bufferlen, nullptr);
      if (flag != ZOK) {
       cout << "get znode error... path:" << path << endl;
-         return "";
+         return nullptr;
     } else{
         
-         return buffer;
+        string val = buffer;
+        val = val.at(0);
+         return val;
     }
  }
               
@@ -136,7 +157,6 @@ bool ZKClient::setVal(const char *path,const char* data, int datalen) {
      cout << "watcher type:" << type << endl;
      cout << "watcher state:" << state << endl;
      cout << "watcher path:" << path << endl;
-     cout <<ZOO_CHANGED_EVENT<<endl;
  
      // session有关的事件
     if (type == ZOO_SESSION_EVENT) {
@@ -152,6 +172,38 @@ bool ZKClient::setVal(const char *path,const char* data, int datalen) {
     }
     if(type == ZOO_CHANGED_EVENT) {
 
-        cout<<"数据变化了"<<endl;
+
+        string tmp = path;
+        cout<<path<<endl;
+    
+        
     }
  }              
+
+vector<string> ZKClient::getNodeChildren(const char* path) {
+
+    struct String_vector vec;
+    vector<string> vec_path;
+
+    int flag = zoo_get_children(_zhandle, path,0,&vec);
+
+    if(flag != ZOK) {
+
+        cout<<"获取子节点失败  path is" <<path<<endl;
+
+    }else {
+
+        if(vec.data) {
+
+            for(int i = 0 ;i < vec.count; i++) {
+
+                vec_path.push_back(vec.data[i]);
+
+            }
+
+        }
+    }
+
+    return vec_path;
+
+}

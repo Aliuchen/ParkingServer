@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+message IsSetPayPwdRequest {
+
+  string  userTel = 1;
+}
+
+message IsSetPayPwdResponse {
+
+  int32  code = 1;
+}

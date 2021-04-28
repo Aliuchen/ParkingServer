@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+
+message RechargeRequest {
+
+  string userTelNum = 1;
+  double money = 2;
+  string payPwd = 3;
+
+}
+
+message RechargeResponse {
+
+  int32  code = 1;
+  string info = 2;
+  string balance = 3;
+
+}

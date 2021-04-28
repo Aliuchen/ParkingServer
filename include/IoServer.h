@@ -9,7 +9,7 @@
 *   更新日志：
 *
 ================================================================*/
-#ifndef IOSERVER_H
+#ifndef  IOSERVER_H
 #define IOSERVER_H 
 
 #include<muduo/net/TcpServer.h>
@@ -19,10 +19,14 @@
 #include<string>
 #include<unordered_map>
 #include<map>
+#include<set>
 #include"Login.h"
 #include"msg_Head.pb.h"
 #include"Findpwd.h"
 #include"Register.h"
+#include"SelectCar.h"
+#include"OrderCar.h"
+#include"Select.h"
 using namespace std;
 using namespace muduo::net;
 using namespace muduo;
@@ -31,6 +35,9 @@ class IoServer {
         // 获取唯一的实例
         static IoServer * getInstance();
         void start();
+        static ZKClient* _zkClient;
+        static ConnectionPool * _pool; 
+        void sendToEveryConn(string msg);
     private:
        IoServer (EventLoop *loop,const InetAddress &addr, const string &name); 
        void onConnection(const TcpConnectionPtr &conn);
@@ -42,8 +49,23 @@ class IoServer {
        static string RegisterFunc(string msg);
        // message 处理函数
        string splitMessage(string msg);
-       // 车位预定函数
+       // 车位预定初始化函数
        static string SelectCar(string msg);
+       // 车位预定函数
+       static string OrderCarF(string msg);
+       // 个人信息设置
+       static string PersonInfoSet(string msg);
+       // 加载用户信息
+       static string GetUserInfo(string msg);
+       // 充值
+       static string Recharge(string msg);
+       // 是否设置支付密码
+       static string IsSetPayPwd(string msg);
+       // 订单处理  
+       static string OrderDispose(string msg);
+       // 这个zookeeper的回调
+       static void global_watcher(zhandle_t *zh, int type,                                                                                                             
+                   int state, const char *path, void *watcherCtx);    
        void onMessage(const TcpConnectionPtr &conn,
                Buffer *buffer,
                Timestamp time);
@@ -51,6 +73,7 @@ class IoServer {
        EventLoop* _loop;
        static IoServer * _ioserver;
        map<string,function<string(string)>> _funcMap;
+       set<TcpConnectionPtr> _con;
 };
 
 #endif

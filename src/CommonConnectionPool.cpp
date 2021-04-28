@@ -133,6 +133,7 @@ void ConnectionPool::produceConnectionTask() {
         }
 
         if(_connectionCnt < _maxSize) {
+            
             Connection * p = new Connection();
             if(!p->connect(_ip,_port,_username,_password,_dbname)) {
 
@@ -167,7 +168,7 @@ shared_ptr<Connection> ConnectionPool::getConnection() {
      //  自定义删除器 ，当使用完后归还给队列
      shared_ptr<Connection> sp(_connectionQue.front(),[&](Connection *pcon) {
              unique_lock<mutex> lock(_queueMutex);
-             _connectionQue.push(pcon);
+             //_connectionQue.push(pcon);
              pcon->refreshAliveTime();
              });
      _connectionQue.pop();

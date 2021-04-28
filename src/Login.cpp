@@ -36,6 +36,7 @@ string Login::verifyLogin(string msg) {
     LoginResponse  response; 
 
     string sql_info = "select user_name,user_pwd from userInfo where user_name = '"+uname+"'";
+
     MYSQL_ROW row;
     MYSQL_RES *res = _connection->query(sql_info);
     

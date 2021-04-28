@@ -13,9 +13,14 @@
 #include"IoServer.h"
 #include<iostream>
 #include"LoadToZk.h"
+
 using namespace std;
 
 IoServer * IoServer::_ioserver = nullptr;
+
+ZKClient * IoServer::_zkClient = new ZKClient;
+
+ConnectionPool * IoServer::_pool = ConnectionPool::getConnectionPool();
 
 IoServer* IoServer::getInstance() {
 
@@ -31,7 +36,7 @@ IoServer* IoServer::getInstance() {
 
 IoServer::IoServer(EventLoop *loop,
         const InetAddress &addr,
-        const string &name):_server(loop,addr,name),_loop(loop) {
+        const string &name):_server(loop,addr,name),_loop(loop){
     //绑定连接回调
     _server.setConnectionCallback(bind(&IoServer::onConnection,this,_1));
     //绑定读写回调
@@ -42,6 +47,10 @@ IoServer::IoServer(EventLoop *loop,
     // 从db 加载停车位信息到zk 中
    LoadToZK loadToZk;  
    loadToZk.start();
+
+   _zkClient->start(global_watcher);
+   _zkClient->sendHeartBeat();
+
     
     // 登录
     function<string(string)> func_login = LoginFunc;
@@ -54,10 +63,32 @@ IoServer::IoServer(EventLoop *loop,
     function<string(string)> func_register = RegisterFunc;
     _funcMap.insert({"Register",func_register});
 
-    // 预定车位
+    // 预定车位初始化
     function<string(string)> func_selectCar = SelectCar;
-    _funcMap.insert({"SelectCar",func_selectCar});
+    _funcMap.insert({"SelectCarFirst",func_selectCar});
 
+    // 预定车位
+    function<string(string)> func_orderCar = OrderCarF;
+    _funcMap.insert({"OrderCarEnd",func_orderCar});
+
+    // 个人信息设置
+    function<string(string)> func_infoSet = PersonInfoSet;
+    _funcMap.insert({"UserInfoSet",func_infoSet});
+
+    // 加载用户信息
+    function<string(string)> func_getUserInfo = GetUserInfo;
+    _funcMap.insert({"LoadUserInfo",func_getUserInfo});
+
+    // 充值
+    function<string(string)> func_recharge = Recharge;
+    _funcMap.insert({"payMoney",func_recharge});
+    // 是否设置支付密码
+    function<string(string)> func_isSetPayPwd = IsSetPayPwd;
+    _funcMap.insert({"IsSetPayPwd",func_isSetPayPwd});
+
+    // 订单处理
+    function<string(string)> func_orderDispose = OrderDispose;
+    _funcMap.insert({"submitOrder",func_orderDispose});
 }
 
 void IoServer::start() {
@@ -69,9 +100,22 @@ void IoServer::start() {
 
 void IoServer::onConnection(const TcpConnectionPtr &conn) {
     
+
     if(!conn->connected()) {
+
+        auto it = _con.find(conn);
+        if(it != _con.end()){
+
+            cout<<"移除一条连接"<<endl;
+            _con.erase(it);
+        }
+
         conn->shutdown();
+    } else {
+
+        _con.insert(conn);
     }
+
 }
 
 string IoServer::splitMessage(string msg) {
@@ -99,7 +143,7 @@ string IoServer::splitMessage(string msg) {
     string err_info = "没有这个服务";
     if(func != _funcMap.end()) {
 
-        cout<<"找到login方法"<<endl;
+        cout<<"找到方法"<<endl;
         return func->second(body_string);
     }
 
@@ -110,16 +154,16 @@ string IoServer::splitMessage(string msg) {
     return err_info;
 }
 
-void IoServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestamp time) {
+		void IoServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestamp time) {
 
-    string message = buffer->retrieveAllAsString();
+			string message = buffer->retrieveAllAsString();
 
 
-    if(message == "Client_Heart") {
+			if(message == "Client_Heart") {
 
-        cout<<message<<endl;
-        //conn->send("ok");
-    }else {
+				cout<<message<<endl;
+				//conn->send("ok");
+		}else {
 
         conn->send(splitMessage(message));
         
@@ -153,7 +197,127 @@ string IoServer::RegisterFunc(string msg) {
 string IoServer::SelectCar(string msg) {
 
     string response;
+    SelelctCar car(_zkClient);
+    response = car.getNodeVal(msg);
 
     return response;
 
 }
+
+string IoServer::OrderCarF(string msg) {
+
+    string response;  
+    OrderCar car(_zkClient);
+
+    response = car.orderCarASetVal(msg);
+     
+    return response;
+
+}
+
+string IoServer::PersonInfoSet(string msg) {
+    
+    string response;  
+    Register _register;
+
+    response = _register.setPersonInfo(msg);
+    return response;
+
+}
+
+string IoServer::GetUserInfo(string msg) {
+
+    string response;
+
+    Select _select;
+
+
+    response = _select.getUserInfo(msg);
+
+    return response;
+    
+}
+
+string IoServer::Recharge(string msg) {
+
+
+    string response;
+
+    Select _select;
+
+    response = _select.rechargeMoney(msg);
+
+    return response;
+}
+
+string IoServer::IsSetPayPwd(string msg) {
+    string response;
+    Select _select;
+    response = _select.isSetPayPwd(msg);
+    return response;
+}
+
+string IoServer::OrderDispose(string msg) {
+    string response;
+    Select _select;
+
+    response = _select.orderDispose(msg);
+    return response;
+}
+ void IoServer::global_watcher(zhandle_t *zh, int type,
+      int state, const char *path, void *watcherCtx) {
+     cout << "IoServer watcher type:" << type << endl;
+     cout << "IoServer watcher state:" << state << endl;
+     cout << "IoServer watcher path:" << path << endl;
+
+     // session有关的事件
+    if (type == ZOO_SESSION_EVENT) {
+        // sresponse;ession创建成功了
+        if (state == ZOO_CONNECTED_STATE) {
+            // 通知调用线程连接成功                                                                                                                                       
+            sem_post(&ZKClient::_sem);
+         } else if (state == ZOO_EXPIRED_SESSION_STATE) {
+             // session超时了    
+
+
+     }
+    }
+    if(type == ZOO_CHANGED_EVENT) {
+
+        _zkClient->getVal(path,1);
+        string tmp = path;
+        cout<<"IoServer 的回调"<<path<<endl;
+
+        int n = tmp.find_last_of("/");
+
+        string head_path = tmp.substr(0,n);
+        string location = tmp.substr(n+1);
+
+
+        int m = head_path.find_last_not_of("/");
+
+        string area = head_path.substr(m);
+
+        vector<string> vec;
+        vec.push_back(area);
+        vec.push_back(location);
+        vec.push_back("");
+        IoServer * io = IoServer::getInstance();
+        io->sendToEveryConn(OrderCar::sendMessage(3,vec));
+ 
+     }
+
+  }
+
+void IoServer::sendToEveryConn(string msg) {
+
+
+    cout<<_con.size()<<endl;
+    
+    for(TcpConnectionPtr ptr : _con ) {
+
+        ptr->send(msg);
+    }
+}
+
+

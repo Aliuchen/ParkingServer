@@ -20,6 +20,7 @@
 #include"Connection.h"
 #include"msg_Register.pb.h"
 #include"msg_Head.pb.h"
+#include"msg_PersonInfoSet.pb.h"
 
 
 class Register {
@@ -27,6 +28,7 @@ class Register {
     public:
         Register();
         string registerToDatabase(string msg);
+        string setPersonInfo(string msg);
     private:
        ConnectionPool * _pool;
        shared_ptr<Connection> _connection;

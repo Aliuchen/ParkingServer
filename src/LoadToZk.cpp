@@ -10,13 +10,13 @@
 *
 ================================================================*/
 #include"LoadToZk.h"
+#include<vector>
 
 using namespace std;
 
 LoadToZK::LoadToZK() {
 
     _zkclient.start();
-    _zkclient.sendHeartBeat();
      _pool = ConnectionPool::getConnectionPool();
       _connection = _pool->getConnection();
 
@@ -79,17 +79,37 @@ void LoadToZK::start() {
     }
 
     
-    /*
-    string valPath = "/ParkingService/经度108.95468917825438000000纬度34.22987464828418000000/D/5";
-
-    string val = _zkclient.getVal(valPath.c_str(),1);
-
-    cout<< val[0]<<val.size()<<endl;
 
     
-    _zkclient.setVal(valPath.c_str(),to_string(1).c_str(),to_string(1).size());
-*/
+  
+    string valPath = "/ParkingService/经度108.95468917825438纬度34.22987464828418/D/5";
 
+    
+ //   string val = _zkclient.getVal(valPath.c_str(),1);
+
+  //  cout<< val<<"   "<<val.size()<<endl;
+
+    
+    
+    _zkclient.setVal(valPath.c_str(),to_string(1).c_str(),to_string(1).size());
+/*
+    val = _zkclient.getVal(valPath.c_str(),1); 
+     cout<< val<<val.size()<<endl;
+
+    */
+    /*
+
+
+    string s = "/ParkingService/经度108.95468917825438纬度34.22987464828418";
+   
+    cout<<path<<endl;
+    vector<string> vec = _zkclient.getNodeChildren(s.c_str());
+
+    for(auto it : vec) {
+
+        cout<<it<<endl;
+    }
+*/    
    
 
 }

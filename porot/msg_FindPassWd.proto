@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+
+message FindPwdRequest {
+
+  string tel = 1;
+
+}
+
+message FindPwdResponse {
+
+  int32 code = 1;
+
+}
+
